@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Square Runner: Levels</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="gameCanvas" width="800" height="250"></canvas>
+        <div id="ui">Score: <span id="score">0</span> | Level: <span id="currentLevel">None</span></div>
+        
+        <div id="menu-overlay" class="overlay">
+            <h1>SQUARE RUNNER</h1>
+            <p>Select Difficulty</p>
+            <div class="button-group">
+                <button onclick="menu.selectLevel(1)">Level 1</button>
+                <button onclick="menu.selectLevel(2)">Level 2</button>
+                <button onclick="menu.selectLevel(3)">Level 3</button>
+            </div>
+        </div>
+
+        <div id="death-overlay" class="overlay" style="display: none;">
+            <h1>CRASHED!</h1>
+            <p>Final Score: <span id="finalScore">0</span></p>
+            <div class="button-group">
+                <button class="btn-restart" onclick="game.restart()">Restart Level</button>
+                <button class="btn-back" onclick="game.backToMenu()">Back to Menu</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/Player.js"></script>
+    <script src="js/Obstacle.js"></script>
+    <script src="js/Menu.js"></script>
+    <script src="js/Game.js"></script>
+</body>
+</html>
