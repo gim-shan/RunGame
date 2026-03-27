@@ -7,14 +7,18 @@ class Obstacle {
         if (this.type === "ground") {
             this.width = 30 + Math.random() * 30;
             this.height = 40 + Math.random() * 40;
-            this.y = canvasHeight - this.height - 50;
-            this.color = "#9d50bb";
+            this.y = canvasHeight - this.height - 50; // On the floor
+            this.color = "#9d50bb"; // Purple
         } else {
-            this.width = 70;
+            this.width = 90; // Longer so you have to stay down longer
             this.height = 20;
-            // High enough that you MUST crouch to pass
-            this.y = canvasHeight - 115; 
-            this.color = "#f1c40f";
+            
+            // CALIBRATION:
+            // This is now significantly lower. 
+            // It will pass through the middle of the player's standing body.
+            this.y = canvasHeight - 95; 
+            
+            this.color = "#f1c40f"; // Gold/Yellow
         }
     }
 
