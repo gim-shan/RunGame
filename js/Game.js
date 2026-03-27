@@ -20,6 +20,10 @@ class GameEngine {
         this.maxGap = 300;
         this.nextSpawnAt = 120;
 
+        // SHAKE VARIABLES
+        this.shakeDuration = 0;
+        this.shakeIntensity = 7;
+
         this.keys = {};
         window.addEventListener('keydown', (e) => this.keys[e.code] = true);
         window.addEventListener('keyup', (e) => this.keys[e.code] = false);
@@ -32,10 +36,14 @@ class GameEngine {
 
     createStars() {
         let s = [];
-        for(let i=0; i<100; i++) {
-            s.push({ x: Math.random()*2000, y: Math.random()*1000, size: Math.random()*2.5 });
+        for(let i=0; i<150; i++) {
+            s.push({ x: Math.random()*this.canvas.width, y: Math.random()*this.canvas.height, size: Math.random()*2.5 });
         }
         return s;
+    }
+
+    triggerShake() {
+        this.shakeDuration = 15; // Number of frames to shake
     }
 
     drawBackground() {
@@ -49,7 +57,10 @@ class GameEngine {
         const floorY = this.canvas.height - 50;
         this.ctx.strokeStyle = "#4834d4";
         this.ctx.lineWidth = 4;
-        this.ctx.strokeRect(-10, floorY, this.canvas.width + 20, 60);
+        this.ctx.beginPath();
+        this.ctx.moveTo(0, floorY);
+        this.ctx.lineTo(this.canvas.width, floorY);
+        this.ctx.stroke();
     }
 
     start(speed) {
@@ -63,6 +74,7 @@ class GameEngine {
         this.obstacles = [];
         this.gameActive = true;
         this.obstacleTimer = 0;
+        this.shakeDuration = 0;
         this.currentLevelSpeed = this.initialLevelSpeed;
         this.player = new Player(this.canvas.width, this.canvas.height);
         this.deathOverlay.style.display = 'none';
@@ -79,38 +91,53 @@ class GameEngine {
     }
 
     gameLoop() {
-        if (!this.gameActive) return;
+        // We allow the loop to run even if !gameActive for the shake effect
+        this.ctx.save();
 
+        // Apply Screen Shake logic
+        if (this.shakeDuration > 0) {
+            let dx = (Math.random() - 0.5) * this.shakeIntensity;
+            let dy = (Math.random() - 0.5) * this.shakeIntensity;
+            this.ctx.translate(dx, dy);
+            this.shakeDuration--;
+        }
+
+        // Clear and Draw
         this.ctx.fillStyle = "#0a0a19";
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         this.drawBackground();
 
-        // Input
-        if (this.keys['ArrowUp'] || this.keys['Space'] || this.keys['KeyW']) this.player.jump();
-        if (this.keys['ArrowDown'] || this.keys['KeyS']) this.player.crouch(true);
-        else this.player.crouch(false);
-        if (this.keys['ArrowRight'] || this.keys['KeyD']) this.player.moveRight();
-        if (this.keys['ArrowLeft'] || this.keys['KeyA']) this.player.moveLeft();
+        if (this.gameActive) {
+            // Input
+            if (this.keys['ArrowUp'] || this.keys['Space'] || this.keys['KeyW']) this.player.jump();
+            if (this.keys['ArrowDown'] || this.keys['KeyS']) this.player.crouch(true);
+            else this.player.crouch(false);
+            if (this.keys['ArrowRight'] || this.keys['KeyD']) this.player.moveRight();
+            if (this.keys['ArrowLeft'] || this.keys['KeyA']) this.player.moveLeft();
 
-        this.player.update(this.canvas.width, this.canvas.height);
+            this.player.update(this.canvas.width, this.canvas.height);
+            this.spawnObstacle();
+
+            this.obstacles.forEach((obs, index) => {
+                obs.update();
+                if (this.checkCollision(this.player, obs)) {
+                    this.triggerShake();
+                    this.gameOver();
+                }
+                if (obs.x + obs.width < 0) {
+                    this.obstacles.splice(index, 1);
+                    this.score += 10;
+                    this.scoreElement.innerText = Math.floor(this.score);
+                    this.currentLevelSpeed += 0.05;
+                }
+            });
+        }
+
+        // Always draw player and obstacles (even during death shake)
         this.player.draw(this.ctx);
+        this.obstacles.forEach(o => o.draw(this.ctx));
 
-        this.spawnObstacle();
-
-        this.obstacles.forEach((obs, index) => {
-            obs.update();
-            obs.draw(this.ctx);
-
-            if (this.checkCollision(this.player, obs)) this.gameOver();
-
-            if (obs.x + obs.width < 0) {
-                this.obstacles.splice(index, 1);
-                this.score += 10;
-                this.scoreElement.innerText = Math.floor(this.score);
-                this.currentLevelSpeed += 0.05;
-            }
-        });
-
+        this.ctx.restore();
         requestAnimationFrame(() => this.gameLoop());
     }
 
@@ -125,10 +152,13 @@ class GameEngine {
     gameOver() {
         this.gameActive = false;
         document.getElementById('finalScore').innerText = Math.floor(this.score);
-        this.deathOverlay.style.display = 'flex';
+        // Show overlay after a tiny delay so player sees the shake
+        setTimeout(() => {
+            if (!this.gameActive) this.deathOverlay.style.display = 'flex';
+        }, 500);
     }
 
-    restart() { this.resetGameVariables(); this.gameLoop(); }
+    restart() { this.resetGameVariables(); }
     backToMenu() { location.reload(); }
 }
 
