@@ -18,7 +18,44 @@ class Player {
         this.isGrounded = false;
         this.isCrouching = false;
         this.history = [];
-        this.maxHistory = 6;
+        this.maxHistory = 8;
+        this.currentStatus = "NORMAL"; 
+    }
+
+    draw(ctx) {
+        ctx.save();
+        let drawColor = this.color;
+        if (this.currentStatus === "INVINCIBLE") drawColor = "#00ff88";
+        if (this.currentStatus === "SPEED") drawColor = "#ff3300";
+        if (this.isCrouching && this.currentStatus === "NORMAL") drawColor = "#ff0080";
+
+        // Draw Ghost Trail
+        this.history.forEach((pos, index) => {
+            let opacity = (index + 1) / (this.history.length * 4);
+            ctx.globalAlpha = (this.currentStatus === "INVINCIBLE") ? opacity * 0.3 : opacity;
+            ctx.fillStyle = drawColor;
+            this.roundRect(ctx, pos.x, pos.y, this.width, pos.h, 5);
+        });
+
+        // Draw Main Body
+        ctx.globalAlpha = (this.currentStatus === "INVINCIBLE") ? 0.5 : 1.0;
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = drawColor;
+        ctx.fillStyle = drawColor;
+        this.roundRect(ctx, this.x, this.y, this.width, this.height, 5);
+
+        // --- NEW BOX DESIGNS ---
+        // 1. Neon Eye
+        ctx.fillStyle = "white";
+        ctx.shadowBlur = 5;
+        ctx.fillRect(this.x + this.width - 15, this.y + 10, 7, 7);
+
+        // 2. Thrusters (bottom sides)
+        ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+        ctx.fillRect(this.x - 5, this.y + this.height - 15, 5, 10);
+        ctx.fillRect(this.x + this.width, this.y + this.height - 15, 5, 10);
+
+        ctx.restore();
     }
 
     roundRect(ctx, x, y, width, height, radius) {
@@ -36,48 +73,22 @@ class Player {
         ctx.fill();
     }
 
-    draw(ctx) {
-        ctx.save();
-        
-        // Ghost Trail
-        this.history.forEach((pos, index) => {
-            let opacity = (index + 1) / (this.history.length * 2);
-            ctx.globalAlpha = opacity;
-            ctx.fillStyle = this.isCrouching ? "#ff0080" : this.color;
-            this.roundRect(ctx, pos.x, pos.y, this.width, pos.h, 5);
-        });
-
-        // Main Player
-        ctx.globalAlpha = 1.0;
-        ctx.shadowBlur = 20;
-        ctx.shadowColor = this.isCrouching ? "#ff0080" : this.color;
-        ctx.fillStyle = this.isCrouching ? "#ff0080" : this.color;
-        
-        this.roundRect(ctx, this.x, this.y, this.width, this.height, 5);
-        
-        // Detail / Eye
-        ctx.fillStyle = "#fff";
-        ctx.fillRect(this.x + this.width - 12, this.y + 10, 6, 6);
-        
-        ctx.restore();
-    }
-
-    jump() {
-        if (this.isGrounded && !this.isCrouching) {
-            this.dy = -this.jumpForce;
-            this.isGrounded = false;
-        }
+    jump() { 
+        if (this.isGrounded && !this.isCrouching) { 
+            this.dy = -this.jumpForce; 
+            this.isGrounded = false; 
+        } 
     }
 
     crouch(active) {
         if (active && !this.isCrouching) {
             this.isCrouching = true;
-            this.height = this.baseHeight / 2; // Hitbox shrinks
-            // No need to manually shift Y here, the update() ground check handles it
+            this.y += (this.baseHeight / 2); 
+            this.height = this.baseHeight / 2;
         } else if (!active && this.isCrouching) {
             this.isCrouching = false;
-            this.height = this.baseHeight; // Hitbox grows back
-            this.y -= this.baseHeight / 2; // Pop back up so we don't fall through floor
+            this.height = this.baseHeight;
+            this.y -= (this.baseHeight / 2); 
         }
     }
 
@@ -86,7 +97,7 @@ class Player {
 
     update(canvasWidth, canvasHeight) {
         this.history.push({ x: this.x, y: this.y, h: this.height });
-        if (this.history.length > this.maxHistory) this.history.shift();
+        if (this.history.length > 10) this.history.shift();
 
         this.y += this.dy;
         this.dy += this.gravity;
@@ -94,11 +105,12 @@ class Player {
         this.vx *= this.friction;
 
         const floorLimit = canvasHeight - this.height - this.floorOffset;
-
-        if (this.y >= floorLimit) {
-            this.y = floorLimit;
-            this.dy = 0;
-            this.isGrounded = true;
+        if (this.y >= floorLimit) { 
+            this.y = floorLimit; 
+            this.dy = 0; 
+            this.isGrounded = true; 
+        } else {
+            this.isGrounded = false;
         }
 
         if (this.x < 20) this.x = 20;
