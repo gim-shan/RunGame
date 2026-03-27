@@ -5,7 +5,6 @@ class GameEngine {
         this.scoreElement = document.getElementById('score');
         this.deathOverlay = document.getElementById('death-overlay');
         
-        // Dynamic Sizing
         this.resize();
         window.addEventListener('resize', () => this.resize());
 
@@ -17,11 +16,9 @@ class GameEngine {
         this.gameActive = false;
         this.currentLevelSpeed = 0;
         this.obstacleTimer = 0;
-        
-        // Scaled Gaps for wider screens
-        this.minGap = 120;
-        this.maxGap = 350;
-        this.nextSpawnAt = 150;
+        this.minGap = 100;
+        this.maxGap = 300;
+        this.nextSpawnAt = 120;
 
         this.keys = {};
         window.addEventListener('keydown', (e) => this.keys[e.code] = true);
@@ -31,22 +28,17 @@ class GameEngine {
     resize() {
         this.canvas.width = window.innerWidth;
         this.canvas.height = window.innerHeight;
-        // Update player position if game is running
-        if(this.player) {
-            this.player.y = this.canvas.height - this.player.height - 50;
-        }
     }
 
     createStars() {
         let s = [];
-        for(let i=0; i<100; i++) { // More stars for full screen
-            s.push({ x: Math.random()*this.canvas.width, y: Math.random()*this.canvas.height, size: Math.random()*2.5 });
+        for(let i=0; i<100; i++) {
+            s.push({ x: Math.random()*2000, y: Math.random()*1000, size: Math.random()*2.5 });
         }
         return s;
     }
 
     drawBackground() {
-        // Stars
         this.ctx.fillStyle = "white";
         this.stars.forEach(s => {
             this.ctx.fillRect(s.x, s.y, s.size, s.size);
@@ -54,18 +46,10 @@ class GameEngine {
             if(s.x < 0) s.x = this.canvas.width;
         });
 
-        // Ground Line
         const floorY = this.canvas.height - 50;
         this.ctx.strokeStyle = "#4834d4";
         this.ctx.lineWidth = 4;
-        this.ctx.beginPath();
-        this.ctx.moveTo(0, floorY);
-        this.ctx.lineTo(this.canvas.width, floorY);
-        this.ctx.stroke();
-        
-        // Floor Neon Grid Effect
-        this.ctx.fillStyle = "rgba(72, 52, 212, 0.15)";
-        this.ctx.fillRect(0, floorY, this.canvas.width, 50);
+        this.ctx.strokeRect(-10, floorY, this.canvas.width + 20, 60);
     }
 
     start(speed) {
@@ -99,10 +83,12 @@ class GameEngine {
 
         this.ctx.fillStyle = "#0a0a19";
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-        
         this.drawBackground();
 
+        // Input
         if (this.keys['ArrowUp'] || this.keys['Space'] || this.keys['KeyW']) this.player.jump();
+        if (this.keys['ArrowDown'] || this.keys['KeyS']) this.player.crouch(true);
+        else this.player.crouch(false);
         if (this.keys['ArrowRight'] || this.keys['KeyD']) this.player.moveRight();
         if (this.keys['ArrowLeft'] || this.keys['KeyA']) this.player.moveLeft();
 
@@ -115,15 +101,13 @@ class GameEngine {
             obs.update();
             obs.draw(this.ctx);
 
-            if (this.checkCollision(this.player, obs)) {
-                this.gameOver();
-            }
+            if (this.checkCollision(this.player, obs)) this.gameOver();
 
             if (obs.x + obs.width < 0) {
                 this.obstacles.splice(index, 1);
                 this.score += 10;
                 this.scoreElement.innerText = Math.floor(this.score);
-                this.currentLevelSpeed += 0.05; // Slightly faster scaling for full screen
+                this.currentLevelSpeed += 0.05;
             }
         });
 
@@ -131,10 +115,11 @@ class GameEngine {
     }
 
     checkCollision(p, o) {
-        return p.x + 8 < o.x + o.width &&
-               p.x + p.width - 8 > o.x &&
-               p.y + 8 < o.y + o.height &&
-               p.y + p.height - 8 > o.y;
+        const pad = 8;
+        return p.x + pad < o.x + o.width &&
+               p.x + p.width - pad > o.x &&
+               p.y + pad < o.y + o.height &&
+               p.y + p.height - pad > o.y;
     }
 
     gameOver() {
