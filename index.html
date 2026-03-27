@@ -12,12 +12,18 @@
         
         <div id="ui">
             Score: <span id="score">0</span> | 
-            Level: <span id="currentLevel">None</span>
+            Level: <span id="currentLevel">None</span> | 
+            High Score: <span id="highScoreDisplay">0</span>
         </div>
         
         <div id="menu-overlay" class="overlay">
             <h1>CYBER RUNNER</h1>
             <p>NEON PROTOCOL ACTIVE</p>
+            
+            <p style="color: #00ff88; font-size: 1.2rem; font-weight: bold; margin-bottom: 20px;">
+                BEST RUN: <span id="menuHighScore">0</span>
+            </p>
+
             <div class="button-group">
                 <button onclick="menu.selectLevel(1)">Beginner</button>
                 <button onclick="menu.selectLevel(2)">Advanced</button>
@@ -37,6 +43,7 @@
 
     <script src="js/Player.js"></script>
     <script src="js/Obstacle.js"></script>
+    <script src="js/PowerUp.js"></script>
     <script src="js/Game.js"></script>
     <script src="js/Menu.js"></script>
 </body>
