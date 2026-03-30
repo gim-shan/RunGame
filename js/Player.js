@@ -7,9 +7,10 @@ class Player {
         this.floorOffset = 50;
         this.y = canvasHeight - this.height - this.floorOffset;
         
-        this.color = "#00d2ff";
+        this.color = "#00d2ff"; 
+        
         this.dy = 0;
-        this.jumpForce = 15;
+        this.jumpForce = 14; // Slightly lower base jump to accommodate double jump
         this.gravity = 0.7;
         this.vx = 0;
         this.acceleration = 0.8;
@@ -18,7 +19,15 @@ class Player {
         this.isGrounded = false;
         this.isCrouching = false;
         this.history = [];
-        this.maxHistory = 8;
+        
+        // --- NEW: NINJA MOVEMENT VARS ---
+        this.jumpCount = 0;
+        this.maxJumps = 2; // Allow double jump
+        
+        this.isDashing = false;
+        this.dashDuration = 0;
+        this.dashCooldown = 0;
+        
         this.currentStatus = "NORMAL"; 
     }
 
@@ -28,29 +37,27 @@ class Player {
         if (this.currentStatus === "INVINCIBLE") drawColor = "#00ff88";
         if (this.currentStatus === "SPEED") drawColor = "#ff3300";
         if (this.isCrouching && this.currentStatus === "NORMAL") drawColor = "#ff0080";
+        
+        // If dashing, turn blinding white
+        if (this.isDashing) drawColor = "#ffffff";
 
-        // Draw Ghost Trail
         this.history.forEach((pos, index) => {
             let opacity = (index + 1) / (this.history.length * 4);
-            ctx.globalAlpha = (this.currentStatus === "INVINCIBLE") ? opacity * 0.3 : opacity;
+            ctx.globalAlpha = (this.currentStatus === "INVINCIBLE" || this.isDashing) ? opacity * 0.5 : opacity;
             ctx.fillStyle = drawColor;
             this.roundRect(ctx, pos.x, pos.y, this.width, pos.h, 5);
         });
 
-        // Draw Main Body
-        ctx.globalAlpha = (this.currentStatus === "INVINCIBLE") ? 0.5 : 1.0;
-        ctx.shadowBlur = 20;
+        ctx.globalAlpha = (this.currentStatus === "INVINCIBLE" && !this.isDashing) ? 0.5 : 1.0;
+        ctx.shadowBlur = this.isDashing ? 30 : 20; // Bigger glow when dashing
         ctx.shadowColor = drawColor;
         ctx.fillStyle = drawColor;
         this.roundRect(ctx, this.x, this.y, this.width, this.height, 5);
 
-        // --- NEW BOX DESIGNS ---
-        // 1. Neon Eye
         ctx.fillStyle = "white";
         ctx.shadowBlur = 5;
         ctx.fillRect(this.x + this.width - 15, this.y + 10, 7, 7);
 
-        // 2. Thrusters (bottom sides)
         ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
         ctx.fillRect(this.x - 5, this.y + this.height - 15, 5, 10);
         ctx.fillRect(this.x + this.width, this.y + this.height - 15, 5, 10);
@@ -74,10 +81,24 @@ class Player {
     }
 
     jump() { 
-        if (this.isGrounded && !this.isCrouching) { 
+        // Can jump if grounded OR if we haven't used our double jump yet
+        if (this.jumpCount < this.maxJumps && !this.isCrouching) { 
             this.dy = -this.jumpForce; 
             this.isGrounded = false; 
+            this.jumpCount++; // Increment jump tracker
         } 
+    }
+
+    dash() {
+        if (this.dashCooldown <= 0 && !this.isCrouching) {
+            this.isDashing = true;
+            this.dashDuration = 20; // Lasts 1/3rd of a second
+            this.dashCooldown = 600; // 5-second cooldown at 60fps
+            this.vx = 20; // Blast forward
+            
+            // Suspend gravity briefly while dashing in the air
+            this.dy = 0; 
+        }
     }
 
     crouch(active) {
@@ -85,6 +106,7 @@ class Player {
             this.isCrouching = true;
             this.y += (this.baseHeight / 2); 
             this.height = this.baseHeight / 2;
+            this.dy += 5; // Slam down fast if crouching in mid-air
         } else if (!active && this.isCrouching) {
             this.isCrouching = false;
             this.height = this.baseHeight;
@@ -96,11 +118,23 @@ class Player {
     moveLeft() { this.vx -= this.acceleration; }
 
     update(canvasWidth, canvasHeight) {
+        // Record trail history
         this.history.push({ x: this.x, y: this.y, h: this.height });
-        if (this.history.length > 10) this.history.shift();
+        if (this.history.length > (this.isDashing ? 15 : 10)) this.history.shift();
+
+        // Dash Timers
+        if (this.dashDuration > 0) {
+            this.dashDuration--;
+            if (this.dashDuration <= 0) this.isDashing = false;
+        }
+        if (this.dashCooldown > 0) {
+            this.dashCooldown--;
+        }
 
         this.y += this.dy;
-        this.dy += this.gravity;
+        // Don't apply gravity if currently dashing
+        if (!this.isDashing) this.dy += this.gravity; 
+        
         this.x += this.vx;
         this.vx *= this.friction;
 
@@ -109,11 +143,12 @@ class Player {
             this.y = floorLimit; 
             this.dy = 0; 
             this.isGrounded = true; 
+            this.jumpCount = 0; // Reset double jumps when hitting the ground
         } else {
             this.isGrounded = false;
         }
 
         if (this.x < 20) this.x = 20;
-        if (this.x + this.width > canvasWidth * 0.6) this.x = canvasWidth * 0.6 - this.width;
+        if (this.x + this.width > canvasWidth * 0.7) this.x = canvasWidth * 0.7 - this.width;
     }
 }

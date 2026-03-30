@@ -4,11 +4,16 @@ class PowerUp {
         this.width = 30;
         this.height = 30;
         this.x = canvasWidth;
-        // Float at a reachable height
-        this.y = canvasHeight - 120 - Math.random() * 50;
+        
+        // --- HEIGHT FIX ---
+        // Moved from -140 to -200. 
+        // This puts it high enough that the "magnetic hitbox" won't touch 
+        // a player running on the ground, forcing them to jump for it.
+        this.y = canvasHeight - 200;
+        
         this.speed = speed;
-        this.color = this.type === "INVINCIBLE" ? "#00ff88" : "#ff3300";
-        this.angle = 0; // For a floating bobbing effect
+        this.color = this.type === "INVINCIBLE" ? "#00ff88" : "#ff3300"; // Green or Cyan
+        this.angle = 0; 
     }
 
     draw(ctx) {
@@ -20,7 +25,7 @@ class PowerUp {
         ctx.shadowColor = this.color;
         ctx.fillStyle = this.color;
         
-        // Draw a diamond shape
+        // Draw a floating diamond shape
         ctx.translate(this.x + this.width/2, this.y + this.height/2 + bobbing);
         ctx.rotate(Math.PI / 4);
         ctx.fillRect(-this.width/2, -this.height/2, this.width, this.height);
